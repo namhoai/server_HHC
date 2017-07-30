@@ -23,8 +23,8 @@ app.use(
     connection(mysql,{
         host     : 'localhost',
         user     : 'root',
-        password : '',
-        database : 'test',
+        password : '123456789',
+        database : 't_user',
     },'request')
 
 );
@@ -303,7 +303,7 @@ logIn.post(function(req,res,next){
 app.use('/1011961997', router);
 
 //start Server
-var server = app.listen(process.env.PORT || 3000,function(){
+var server = app.listen(process.env.PORT || 80,function(){
 
    console.log("Listening to port %s",server.address().port);
 
