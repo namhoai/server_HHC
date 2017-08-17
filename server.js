@@ -244,6 +244,7 @@ customer.delete(function(req,res,next){
 
      });
 });
+
 var logIn = router.route('/login');
 //post data to DB | POST
 logIn.post(function(req,res,next){
@@ -260,15 +261,15 @@ logIn.post(function(req,res,next){
     console.log(req.body);
 
     // data của client gửi lên.
-    var data = {
+    let data = {
         username:req.body.username,
         email:req.body.email,
         password:req.body.password
      };
     function makeid() {
-        var text = "";
-        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            for (var i = 0; i < 5; i++)
+        let text = "";
+        let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            for (let i = 0; i < 5; i++)
                 text += possible.charAt(Math.floor(Math.random() * possible.length));
 
             return text;
@@ -276,41 +277,61 @@ logIn.post(function(req,res,next){
     const crypto = require('crypto');
     const secret = makeid();
     const hash = crypto.createHmac('sha256', secret)
-                    .update('namvh')
+                    .update('vuhoainam')
                     .digest('hex');
-    var dataCallback = {
+    const dataCallback = {
         data : {
             token: hash
         },
         msg: 'success',
         code: 200
     };
-     
+     console.log('vaochu');
     req.getConnection(function (err, conn){
 
         if (err) return next("Cannot Connect");
 
-        var query = conn.query("SELECT * FROM t_user", function(err, rows){
+        let query = conn.query("SELECT * FROM t_user", function(err, rows){
 
            if(err){
                 console.log(err);
                 return next("Mysql error, check your query");
            }
+            let check = 0;
            rows.forEach(function(element) {
                console.log(element);
               if (data.username === element.name || data.email === element.email) {
                 if (data.password === element.password) {
+                    check = check + 1;
                     res.send(dataCallback);
                 }else {
-                    return next("err pass");    
+                    check = check + 1;
+                    const response = {
+                        data : {
+                            token: null
+                        },
+                        msg: 'Error password',
+                        code: 404
+                    }
+                    res.send(response);    
                 }
               }
            }, this);
+           if (check === 0) {
+               const response = {
+                    data : {
+                        token: null
+                    },
+                    msg: 'Error username',
+                    code: 404
+               }
+               res.send(response);
+           }
         });
-
      });
 
 });
+
 //now we need to apply our router here
 app.use('/1011961997', router);
 
