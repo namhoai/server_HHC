@@ -244,13 +244,11 @@ customer.delete(function(req,res,next){
 
      });
 });
-
 var logIn = router.route('/login');
 //post data to DB | POST
 logIn.post(function(req,res,next){
 
     //validation
-    req.assert('email','A valid email is required').isEmail();
     req.assert('password','Enter a password 6 - 20').len(6,20);
 
     var errors = req.validationErrors();
@@ -263,14 +261,29 @@ logIn.post(function(req,res,next){
 
     // data của client gửi lên.
     var data = {
-        name:req.body.name,
+        username:req.body.username,
         email:req.body.email,
         password:req.body.password
      };
+    function makeid() {
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            for (var i = 0; i < 5; i++)
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
 
+            return text;
+    }
+    const crypto = require('crypto');
+    const secret = makeid();
+    const hash = crypto.createHmac('sha256', secret)
+                    .update('namvh')
+                    .digest('hex');
     var dataCallback = {
-        name:req.body.name,
-        email:req.body.email,
+        data : {
+            token: hash
+        },
+        msg: 'success',
+        code: 200
     };
      
     req.getConnection(function (err, conn){
@@ -285,9 +298,9 @@ logIn.post(function(req,res,next){
            }
            rows.forEach(function(element) {
                console.log(element);
-              if (data.name === element.name || data.email === element.email) {
+              if (data.username === element.name || data.email === element.email) {
                 if (data.password === element.password) {
-                    res.sendStatus(200);
+                    res.send(dataCallback);
                 }else {
                     return next("err pass");    
                 }
@@ -298,7 +311,6 @@ logIn.post(function(req,res,next){
      });
 
 });
-
 //now we need to apply our router here
 app.use('/1011961997', router);
 
