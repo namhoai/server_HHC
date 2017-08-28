@@ -1,3 +1,14 @@
+28.08.2017 - Câp nhập tình hình.
+đang lỗi phần delete : khi thực thi lệnh xóa 
++ trường hợp tồn tại user : đã xóa 
++ trường hợp không tồn tại user : vẫn báo là đã xóa.
+
+
+
+
+
+
+
 This is an example of RESTful CRUD in Node.js n mySQL.
 
 Installation, and tutorial here : http://teknosains.com/i/restful-crud-example-with-nodejs-and-mysql 
