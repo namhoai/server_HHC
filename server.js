@@ -4,7 +4,6 @@ var express  = require('express'),
     app = express(),
     expressValidator = require('express-validator');
 
-
 // Add headers
 app.use(function (req, res, next) {
 
@@ -24,7 +23,6 @@ app.use(function (req, res, next) {
     // Pass to next layer of middleware
     next();
 });
-
 /*Set EJS template Engine*/
 app.set('views','./views');
 app.set('view engine','ejs');
@@ -34,10 +32,10 @@ app.use(bodyParser.urlencoded({ extended: true })); //support x-www-form-urlenco
 app.use(bodyParser.json());
 app.use(expressValidator());
 
+
 /*MySql connection*/
 var connection  = require('express-myconnection'),
     mysql = require('mysql');
-
 
 app.use(
 
@@ -45,7 +43,7 @@ app.use(
         host     : 'localhost',
         user     : 'root',
         password : '123456789',
-        database : 't_user',
+        database : 'database_server',
     },'request')
 
 );
@@ -57,55 +55,84 @@ app.get('/',function(req,res){
 //RESTful route
 var router = express.Router();
 
-
-/*------------------------------------------------------
-*  This is router middleware,invoked everytime
-*  we hit url /api and anything after /api
-*  like /api/user , /api/user/7
-*  we can use this for doing validation,authetication
-*  for every route started with /api
---------------------------------------------------------*/
 router.use(function(req, res, next) {
     console.log(req.method, req.url);
     next();
 });
 
-var customerList = router.route('/data');
+const customerList = router.route('/:APP_ID/data');
 
 // | GET
 // lấy dữ liệu của toàn bộ khách hàng.
 customerList.get(function(req,res,next){
 
-    req.getConnection(function(err,conn){
-
-        if (err) return next("Cannot Connect");
-
-        var query = conn.query('SELECT * FROM data',function(err,rows){
-
-            if(err){
-                console.log(err);
-                return next("Mysql error, check your query");
-            }
-            var temp = {data:rows};
-            res.send(temp);
-
-         });
-
-    });
-
+    const APP_ID = req.params.APP_ID;
+    if (APP_ID === 'cntg' || APP_ID === 'cvptg' || APP_ID === 'dvvc') {
+        const page = req.query.page;
+        const pageSize = req.query.pageSize;
+        const textQuery = 'SELECT * FROM ' + APP_ID;
+        console.log(textQuery);
+        req.getConnection(function(err,conn){
+    
+            if (err) return next("Cannot Connect");
+    
+            const query = conn.query(textQuery, function(err,rows){
+    
+                if(err){
+                    console.log(err);
+                    return next("Mysql error, check your query");
+                }
+                const total = rows.length;
+                let unTick = 0;
+                rows.forEach((object)=> {
+                    if (object.tick === 0) {
+                        console.log(object.tick);
+                        unTick = unTick + 1;
+                    }
+                });
+                
+                const data = (rows, page, pageSize) => {
+                    let data = rows;
+                    if (page !== undefined || pageSize !== undefined) {        
+                        const p2 = total - (page - 1)*pageSize;
+                        const p1 = (p2 >= pageSize) ? p2 - pageSize : 0;
+                        data  = (p2 >= 0 ) ? rows.slice(p1, p2) : [];
+                    }
+                    return data.reverse();
+                }
+                
+                const temp = {
+                    APP_ID: APP_ID,
+                    version: 1.0,
+                    page: parseInt(page, 10), // trả về theo dữ liệu client gửi lên
+                    pageSize: parseInt(pageSize, 10),
+                    data: data(rows, page, pageSize),
+                    msg: 'Bạn có ' + unTick + ' đơn hàng chưa thực thi !',
+                    code: 200,
+                    total: total
+                };
+                res.send(temp);
+    
+             });
+    
+        });
+    } else {
+        const response = {
+            data : {
+                token: null
+            },
+            msg: 'Not found !',
+            code: 404
+       }
+       res.send(response);
+    }
 });
 
 customerList.post(function(req,res,next){
 
-//      validation
-    req.assert('Name','Name is required').notEmpty();
-    req.assert('Phone','Phone is required').notEmpty();
-    req.assert('Gmail','A valid email is required').isEmail();
-    req.assert('FromMove','FromMove is required').notEmpty();
-    req.assert('ToMove','ToMove is required').notEmpty();
-    req.assert('DateMove','DataMove is required').notEmpty();
-    req.assert('Cost','Cost is required').notEmpty();
-    // req.assert('password','Enter a password 6 - 20').len(6,20);
+    //  validation
+    req.assert('name','Name is required').notEmpty();
+    req.assert('phone','Phone is required').notEmpty();
 
     var errors = req.validationErrors();
     if(errors){
@@ -115,31 +142,42 @@ customerList.post(function(req,res,next){
 
     //get data
     var data = {
-        Name:req.body.Name,
-        Phone:req.body.Phone,
-        Gmail:req.body.Gmail,
-        FromMove:req.body.FromMove,
-        ToMove:req.body.ToMove,
-        DateMove:req.body.DateMove,
-        Cost:req.body.Cost,
-        Note:req.body.Note
+        name:req.body.name,
+        phone:req.body.phone,
+        gmail:req.body.gmail,
+        fromMove:req.body.fromMove,
+        toMove:req.body.toMove,
+        dateMove:req.body.dateMove,
+        cost:req.body.cost,
+        note:req.body.note
      };
 
-    //inserting into mysql
+     console.log(data);
+    // inserting into mysql
+
+    const APP_ID = req.params.APP_ID;
+    const textQuery = "INSERT INTO " + APP_ID + " set ? ";
+
     req.getConnection(function (err, conn){
 
         if (err) return next("Cannot Connect");
 
-        var query = conn.query("INSERT INTO data set ? ",data, function(err, rows){
+        var query = conn.query(textQuery,data, function(err, rows){
 
-           if(err){
-                console.log(err);
-                return next("Mysql error, check your query");
-           }
-
-            data.Id = rows.insertId;
-
-            res.send(data);
+            if(err){
+                    console.log(err);
+                    return next("Mysql error, check your query");
+            }
+            console.log(rows);
+            data.id = rows.insertId;
+            const response = {
+                APP_ID: APP_ID,
+                version: 1.0,
+                data: data,
+                msg: 'Thành công !',
+                code: 200,
+            }
+            res.send(response);
 
         });
 
@@ -148,7 +186,8 @@ customerList.post(function(req,res,next){
 });
 
 // GET - DELETE - PUT.
-var customer = router.route('/data/:Id');
+// chỉnh sửa dữ liệu của một người
+var customer = router.route('/:APP_ID/data/:Id');
 
 /*------------------------------------------------------
 route.all is extremely useful. you can use it to do
@@ -165,25 +204,35 @@ customer.all(function(req,res,next){
 //get data to update
 customer.get(function(req,res,next){
 
-    var Id = req.params.Id;
+    const APP_ID = req.params.APP_ID;
+    const id = req.params.Id;
+    const textQuery = 'SELECT * FROM ' + APP_ID + ' WHERE id = ?';
     req.getConnection(function(err,conn){
 
         if (err) return next("Cannot Connect");
 
-        var query = conn.query("SELECT * FROM data WHERE Id = ?",[Id],function(err,rows){
+        var query = conn.query(textQuery,[id],function(err,rows){
 
             if(err){
                 console.log(err);
                 return next("Mysql error, check your query");
             }
 
+            const response = {
+                APP_ID: APP_ID,
+                version: 1.0,
+                data: rows,
+                msg: 'Thành công !',
+                code: 200,
+            }
             //if user not found
-            if(rows.length < 1)
-                return res.send("User Not found");
-
-            const temp = {data: rows};
-
-            res.send(temp);
+            if(rows.length < 1){
+                response.msg = 'User Not found';
+                response.data = null;
+                response.code = 404;
+                return res.send(response);
+            }
+            res.send(response);
         });
 
     });
@@ -193,33 +242,32 @@ customer.get(function(req,res,next){
 
 //update data
 customer.put(function(req,res,next){
-    var Id = req.params.Id;
-
-    req.assert('Name','Name is required').notEmpty();
-    req.assert('Phone','Phone is required').len(10,12);
-    req.assert('Gmail','A valid email is required').isEmail();
-    req.assert('FromMove','FromMove is required').notEmpty();
-    req.assert('ToMove','ToMove is required').notEmpty();
-    req.assert('DateMove','DataMove is required').notEmpty();
-    req.assert('Cost','Cost is required').notEmpty();
+    
+    const id = req.params.Id;
+    const APP_ID = req.params.APP_ID;
+    req.assert('name','Name is required').notEmpty();
+    req.assert('phone','Phone is required').len(10,12);
+    req.assert('fromMove','FromMove is required').notEmpty();
+    req.assert('toMove','ToMove is required').notEmpty();
     // req.assert('password','Enter a password 6 - 20').len(6,20);
 
-    var errors = req.validationErrors();
+    const errors = req.validationErrors();
     if(errors){
         res.status(422).json(errors);
         return;
     }
 
+    const textQuery = "UPDATE " + APP_ID + " set ? WHERE id = ? ";
     //get data
-    var data = {
-        Name:req.body.Name,
-        Phone:req.body.Phone,
-        Gmail:req.body.Gmail,
-        FromMove:req.body.FromMove,
-        ToMove:req.body.ToMove,
-        DateMove:req.body.DateMove,
-        Cost:req.body.Cost,
-        Note:req.body.Note
+    const data = {
+        name:req.body.name,
+        phone:req.body.phone,
+        gmail:req.body.gmail,
+        fromMove:req.body.fromMove,
+        toMove:req.body.toMove,
+        dateMove:req.body.dateMove,
+        cost:req.body.cost,
+        note:req.body.note
      };
 
     //inserting into mysql
@@ -227,15 +275,21 @@ customer.put(function(req,res,next){
 
         if (err) return next("Cannot Connect");
 
-        var query = conn.query("UPDATE data set ? WHERE Id = ? ",[data,Id], function(err, rows){
+        const query = conn.query(textQuery,[data,id], function(err, rows){
 
            if(err){
                 console.log(err);
                 return next("Mysql error, check your query");
            }
 
-          res.sendStatus(200);
-
+           const response = {
+                APP_ID: APP_ID,
+                version: 1.0,
+                data: data,
+                msg: 'Thành công !',
+                code: 200,
+            }
+            res.send(response);
         });
 
      });
@@ -245,24 +299,29 @@ customer.put(function(req,res,next){
 //delete data
 customer.delete(function(req,res,next){
 
-    var Id = req.params.Id;
-
+    const id = req.params.Id;
+    const APP_ID = req.params.APP_ID;
+    const textQuery = "DELETE FROM " + APP_ID + "  WHERE id = ? ";
      req.getConnection(function (err, conn) {
 
         if (err) return next("Cannot Connect");
 
-        var query = conn.query("DELETE FROM data  WHERE Id = ? ",[Id], function(err, rows){
+        const query = conn.query(textQuery,[id], function(err, rows){
 
              if(err){
                 console.log(err);
                 return next("Mysql error, check your query");
              }
 
-             res.sendStatus(200);
+             const response = {
+                APP_ID: APP_ID,
+                version: 1.0,
+                msg: 'Thành công !',
+                code: 200,
+            }
+            res.send(response);
 
         });
-        //console.log(query.sql);
-
      });
 });
 
@@ -354,10 +413,10 @@ logIn.post(function(req,res,next){
 });
 
 //now we need to apply our router here
-app.use('/1011961997', router);
+app.use('/api', router);
 
 //start Server
-var server = app.listen(process.env.PORT || 80,function(){
+let server = app.listen(process.env.PORT || 80,function(){
 
    console.log("Listening to port %s",server.address().port);
 
