@@ -42,7 +42,7 @@ app.use(
     connection(mysql,{
         host     : 'localhost',
         user     : 'root',
-        password : '123456789',
+        password : '',
         database : 'database_server',
     },'request')
 
@@ -91,22 +91,54 @@ customerList.get(function(req,res,next){
                     }
                 });
                 
-                const data = (rows, page, pageSize) => {
+                const getListIdData = (rows, page, pageSize) => {
                     let data = rows;
                     if (page !== undefined || pageSize !== undefined) {        
                         const p2 = total - (page - 1)*pageSize;
                         const p1 = (p2 >= pageSize) ? p2 - pageSize : 0;
                         data  = (p2 >= 0 ) ? rows.slice(p1, p2) : [];
                     }
-                    return data.reverse();
+                    data.reverse();
+                    let listItems = [];
+                    let items;
+                    data.map((item) => {
+                        listItems.push(item.id);
+                        const objectItem = {
+                            [item.id] : {
+                                id: item.id,
+                                user: {
+                                    name: item.name,
+                                    phone: item.phone,
+                                    gmail: item.gmail
+                                },
+                                order: {
+                                    fromMove: item.fromMove,
+                                    toMove: item.toMove,
+                                    dateMove: item.dateMove,
+                                    cost: item.cost,
+                                    note: item.note
+                                },
+                                time: item.time,
+                                tick: item.tick
+                            }
+                        };
+                        items = Object.assign({}, items, objectItem);
+                    });
+                    return {
+                        items,
+                        listItems
+                    };
                 }
                 
+                const dataItems = getListIdData(rows, page, pageSize);
+
                 const temp = {
                     APP_ID: APP_ID,
                     version: 1.0,
                     page: parseInt(page, 10), // trả về theo dữ liệu client gửi lên
                     pageSize: parseInt(pageSize, 10),
-                    data: data(rows, page, pageSize),
+                    data: dataItems.items,
+                    listItems: dataItems.listItems,
                     msg: 'Bạn có ' + unTick + ' đơn hàng chưa thực thi !',
                     code: 200,
                     total: total
@@ -416,7 +448,7 @@ logIn.post(function(req,res,next){
 app.use('/api', router);
 
 //start Server
-let server = app.listen(process.env.PORT || 80,function(){
+let server = app.listen(process.env.PORT || 3001,function(){
 
    console.log("Listening to port %s",server.address().port);
 
