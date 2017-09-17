@@ -42,7 +42,7 @@ app.use(
     connection(mysql,{
         host     : 'localhost',
         user     : 'root',
-        password : '',
+        password : '123456789',
         database : 'database_server',
     },'request')
 
@@ -448,7 +448,7 @@ logIn.post(function(req,res,next){
 app.use('/api', router);
 
 //start Server
-let server = app.listen(process.env.PORT || 3001,function(){
+let server = app.listen(process.env.PORT || 80,function(){
 
    console.log("Listening to port %s",server.address().port);
 
