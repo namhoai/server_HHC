@@ -522,17 +522,19 @@ member.get(function (req, res, next) {
             console.log(rows);
 
             const response = {
-                href: rows[0].href,
-                data: {
-                    id: rows[0].id,
-                    name: rows[0].name,
-                    avatar: rows[0].avatar,
-                    phone: rows[0].phone,
-                    address: rows[0].address,
-                    pictureId: rows[0].pictureId,
-                    level: rows[0].level,
-                    totalApply: rows[0].totalApply,
-                    yearBirth: rows[0].yearBirth,
+                member: {
+                    href: rows[0].href,
+                    data: {
+                        id: rows[0].id,
+                        name: rows[0].name,
+                        avatar: rows[0].avatar,
+                        phone: rows[0].phone,
+                        address: rows[0].address,
+                        pictureId: rows[0].pictureId,
+                        level: rows[0].level,
+                        totalApply: rows[0].totalApply,
+                        yearBirth: rows[0].yearBirth,
+                    }
                 }
             }
             res.send(response);
