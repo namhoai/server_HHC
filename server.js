@@ -37,6 +37,8 @@ app.use(expressValidator());
 const connection = require('express-myconnection'),
     mysql = require('mysql');
 
+const URL = 'http://vanchuyenantam.xyz';
+
 app.use(
 
     connection(mysql, {
@@ -390,7 +392,7 @@ allMember.get(function (req, res, next) {
                     memberIds.push(item.id);
                     const objectItem = {
                         [item.id]: {
-                            href: item.href,
+                            href: item.href + '/' + item.id,
                             data: {
                                 id: item.id,
                                 name: item.name,
@@ -450,7 +452,7 @@ allMember.post(function (req, res, next) {
     for (let i = 0; i < (fullName.length - 1); i++) {
         ACC = ACC + fullName[i][0];
     }
-
+    
     const data = {
         name: req.body.name,
         avatar: avatar,
@@ -460,7 +462,7 @@ allMember.post(function (req, res, next) {
         level: 0,
         totalApply: 0,
         yearBirth: req.body.yearBirth,
-        href: "https://" + ACC + "/profile"
+        href: URL + "/api/member",
     };
 
     console.log(data);
@@ -480,7 +482,7 @@ allMember.post(function (req, res, next) {
             }
 
             const response = {
-                href: href,
+                href: data.href + '/' + rows.insertId,
                 data: {
                     id: rows.insertId,
                     name: data.name,
@@ -523,7 +525,7 @@ member.get(function (req, res, next) {
 
             const response = {
                 member: {
-                    href: rows[0].href,
+                    href: rows[0].href + '/' + rows[0].id,
                     data: {
                         id: rows[0].id,
                         name: rows[0].name,
@@ -574,7 +576,7 @@ member.put(function (req, res, next) {
         level: req.body.level,
         totalApply: req.body.totalApply,
         yearBirth: req.body.yearBirth,
-        href: 'https://' + ACC + '/profile'
+        href: URL + '/api/member',
     };
     //inserting into mysql
     req.getConnection(function (err, conn) {
